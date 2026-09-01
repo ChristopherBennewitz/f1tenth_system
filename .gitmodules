@@ -1,8 +1,8 @@
 [submodule "ackermann_mux"]
 	path = ackermann_mux
-	url = https://github.com/ForzaETH/ackermann_mux
-	branch = foxy-devel
+	url = git@github.com:ChristopherBennewitz/ackermann_mux.git
+	branch = ros2-humble
 [submodule "teleop_tools"]
 	path = teleop_tools
-	url = https://github.com/ForzaETH/teleop_tools.git
-	branch = foxy-devel
+	url = git@github.com:ChristopherBennewitz/teleop_tools.git
+	branch = ros2-humble
