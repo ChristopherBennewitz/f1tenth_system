@@ -27,6 +27,8 @@ class ActuationManager(Node):
         self.declare_parameter('speed_max', 0.0)
         self.declare_parameter('max_acceleration', 2.5)
         self.declare_parameter('max_deceleration', 2.5)
+        self.declare_parameter('minimum_forward_speed', 0.0)
+        self.declare_parameter('minimum_reverse_speed', 0.0)
         self.declare_parameter('steering_min', 0.0)
         self.declare_parameter('steering_max', 0.0)
         self.declare_parameter('max_steering_rate', 3.2)
@@ -58,6 +60,10 @@ class ActuationManager(Node):
             steering_max=float(self.get_parameter('steering_max').value),
             max_steering_rate=self._positive_parameter(
                 'max_steering_rate'),
+            minimum_forward_speed=float(
+                self.get_parameter('minimum_forward_speed').value),
+            minimum_reverse_speed=float(
+                self.get_parameter('minimum_reverse_speed').value),
         )
         self.limiter = ActuationLimiter(limits)
 
