@@ -59,41 +59,6 @@ def test_zero_dt_does_not_advance_output(limiter):
     assert state.steering_angle == 0.0
 
 
-def test_direction_specific_motor_deadband_preserves_internal_ramp():
-    limiter = ActuationLimiter(ActuationLimits(
-        speed_min=-2.0,
-        speed_max=2.0,
-        max_acceleration=1.0,
-        max_deceleration=1.0,
-        steering_min=-0.3,
-        steering_max=0.3,
-        max_steering_rate=1.0,
-        minimum_forward_speed=0.35,
-        minimum_reverse_speed=0.45,
-    ))
-
-    assert limiter.step(1.0, 0.0, 0.2).speed == 0.0
-    assert limiter.step(1.0, 0.0, 0.15).speed == pytest.approx(0.35)
-
-    limiter.step(0.0, 0.0, 1.0, enabled=False)
-    assert limiter.step(-1.0, 0.0, 0.4).speed == 0.0
-    assert limiter.step(-1.0, 0.0, 0.05).speed == pytest.approx(-0.45)
-
-
-def test_invalid_motor_deadbands_are_rejected():
-    with pytest.raises(ValueError):
-        ActuationLimits(
-            speed_min=-2.0,
-            speed_max=2.0,
-            max_acceleration=1.0,
-            max_deceleration=1.0,
-            steering_min=-0.3,
-            steering_max=0.3,
-            max_steering_rate=1.0,
-            minimum_forward_speed=-0.1,
-        )
-
-
 @pytest.mark.parametrize('value', [math.inf, -math.inf, math.nan])
 def test_non_finite_commands_are_rejected(limiter, value):
     with pytest.raises(ValueError):

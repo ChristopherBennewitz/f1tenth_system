@@ -15,8 +15,6 @@ class ActuationLimits:
     steering_min: float
     steering_max: float
     max_steering_rate: float
-    minimum_forward_speed: float = 0.0
-    minimum_reverse_speed: float = 0.0
 
     def __post_init__(self):
         values = vars(self).values()
@@ -36,14 +34,6 @@ class ActuationLimits:
             raise ValueError('max_deceleration must be positive')
         if self.max_steering_rate <= 0.0:
             raise ValueError('max_steering_rate must be positive')
-        if self.minimum_forward_speed < 0.0:
-            raise ValueError('minimum_forward_speed must not be negative')
-        if self.minimum_reverse_speed < 0.0:
-            raise ValueError('minimum_reverse_speed must not be negative')
-        if self.minimum_forward_speed > self.speed_max:
-            raise ValueError('minimum_forward_speed must not exceed speed_max')
-        if self.minimum_reverse_speed > -self.speed_min:
-            raise ValueError('minimum_reverse_speed must not exceed -speed_min')
 
 
 @dataclass(frozen=True)
@@ -69,18 +59,6 @@ class ActuationLimiter:
     def __init__(self, limits):
         self.limits = limits
         self.state = ActuationState()
-        # Keep the continuous slew-limited value separate from the published
-        # value. Otherwise replacing a sub-threshold output with zero would
-        # restart the acceleration ramp on every tick and it could never cross
-        # the motor's usable-speed threshold.
-        self._limited_speed = 0.0
-
-    def _apply_speed_deadband(self, speed):
-        if 0.0 < speed < self.limits.minimum_forward_speed:
-            return 0.0
-        if -self.limits.minimum_reverse_speed < speed < 0.0:
-            return 0.0
-        return speed
 
     def step(self, requested_speed, requested_steering, dt, enabled=True):
         """Advance the applied command by ``dt`` seconds.
@@ -106,14 +84,12 @@ class ActuationLimiter:
                 self.limits.steering_max)
 
             speed_rate = self.limits.max_acceleration
-            if speed_target < self._limited_speed:
+            if speed_target < self.state.speed:
                 speed_rate = self.limits.max_deceleration
-            self._limited_speed = _move_towards(
-                self._limited_speed, speed_target, speed_rate * dt)
+            speed = _move_towards(
+                self.state.speed, speed_target, speed_rate * dt)
         else:
-            self._limited_speed = 0.0
-
-        speed = self._apply_speed_deadband(self._limited_speed)
+            speed = 0.0
 
         steering = _move_towards(
             self.state.steering_angle,
