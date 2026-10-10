@@ -22,7 +22,7 @@ class ActuationManager(Node):
         self.declare_parameter('navigation_topic', 'drive')
         self.declare_parameter('teleop_topic', 'teleop')
         self.declare_parameter('output_topic', 'ackermann_cmd_applied')
-        self.declare_parameter('output_rate', 75.0)
+        self.declare_parameter('output_rate', 100.0)
         self.declare_parameter('speed_min', 0.0)
         self.declare_parameter('speed_max', 0.0)
         self.declare_parameter('max_acceleration', 2.5)
