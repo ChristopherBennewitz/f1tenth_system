@@ -62,8 +62,8 @@ def generate_launch_description():
     ld = LaunchDescription([joy_la, vesc_la, sensors_la])
 
     joy_node = Node(
-        package='joy',
-        executable='joy_node',
+        package='joy_linux',
+        executable='joy_linux_node',
         name='joy',
         parameters=[LaunchConfiguration('joy_teleop_config')]
     )
@@ -143,7 +143,7 @@ def generate_launch_description():
     ld.add_action(actuation_manager_node)
     ld.add_action(urg_node)
     ld.add_action(static_tf_node_bl)
-    ld.add_action(static_tf_node_mo)
+    # ld.add_action(static_tf_node_mo)
     ld.add_action(static_tf_node_bi)
     ld.add_action(static_tf_node_cbb)
     ld.add_action(static_tf_node_cll)
