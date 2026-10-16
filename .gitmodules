@@ -1,7 +1,3 @@
-[submodule "ackermann_mux"]
-	path = ackermann_mux
-	url = git@github.com:ChristopherBennewitz/ackermann_mux.git
-	branch = ros2-humble
 [submodule "teleop_tools"]
 	path = teleop_tools
 	url = git@github.com:ChristopherBennewitz/teleop_tools.git
