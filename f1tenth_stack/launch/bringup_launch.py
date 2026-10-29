@@ -20,15 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from launch import LaunchDescription
-from launch_ros.actions import Node
-from launch.substitutions import Command
-from launch.substitutions import LaunchConfiguration
-from launch.actions import DeclareLaunchArgument
-from launch.actions import IncludeLaunchDescription
-from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
-from ament_index_python.packages import get_package_share_directory
 import os
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
+from launch_ros.actions import Node
+
 
 def generate_launch_description():
     joy_teleop_config = os.path.join(
@@ -46,20 +45,47 @@ def generate_launch_description():
         'config',
         'sensors.yaml'
     )
+    camera_config = os.path.join(
+        get_package_share_directory('stack_master'),
+        'config',
+        'camera',
+        'd435_config.yaml'
+    )
 
+    use_vio_arg = DeclareLaunchArgument(
+        'use_vio',
+        default_value=EnvironmentVariable('USE_VIO', default_value='false'),
+        description='Launch the RealSense camera (set via USE_VIO in .env)'
+    )
     joy_la = DeclareLaunchArgument(
         'joy_teleop_config',
         default_value=joy_teleop_config,
-        description='Descriptions for joy and joy_teleop configs')
+        description='Descriptions for joy and joy_teleop configs'
+    )
     vesc_la = DeclareLaunchArgument(
         'vesc_config',
         default_value=vesc_config,
-        description='Descriptions for vesc configs')
+        description='Descriptions for vesc configs'
+    )
     sensors_la = DeclareLaunchArgument(
         'sensors_config',
         default_value=sensors_config,
-        description='Descriptions for sensor configs')
-    ld = LaunchDescription([joy_la, vesc_la, sensors_la])
+        description='Descriptions for sensor configs'
+    )
+    camera_la = DeclareLaunchArgument(
+        'camera_config',
+        default_value=camera_config,
+        description='Path to RealSense camera config file'
+    )
+
+    # Initialize LaunchDescription with arguments
+    ld = LaunchDescription([
+        use_vio_arg,
+        joy_la,
+        vesc_la,
+        sensors_la,
+        camera_la
+    ])
 
     joy_node = Node(
         package='joy_linux',
@@ -103,38 +129,25 @@ def generate_launch_description():
         name='urg_node',
         parameters=[LaunchConfiguration('sensors_config')]
     )
-    static_tf_node_bl = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='static_baselink_to_laser',
-        arguments=['0.27', '0.0', '0.11', '0.0', '0.0', '0.0', 'base_link', 'laser']
-    )
-    static_tf_node_cbb = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='static_baselink_to_cbb',
-        arguments=['0.0', '0.0', '0.0', '0.0', '0.0', '0.0', 'base_link', 'car_state/base_link']
-    )
-    static_tf_node_cll = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='static_baselink_to_cll',
-        arguments=['0.0', '0.0', '0.0', '0.0', '0.0', '0.0', 'laser', 'car_state/laser']
-    )
-    static_tf_node_mo = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='static_map_to_odom',
-        arguments=['0.0', '0.0', '0.0', '0.0', '0.0', '0.0', 'map', 'odom']
-    )
-    static_tf_node_bi = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='static_baselink_to_imu',
-        arguments=['0.07', '0.0', '0.05', '0.0', '0.0', '0.7071068', '0.7071068', 'base_link', 'imu']
+    camera_node = Node(
+        package='realsense2_camera',
+        executable='realsense2_camera_node',
+        name='camera',
+        namespace='camera',
+        output='screen',
+        parameters=[LaunchConfiguration('camera_config')],
+        condition=IfCondition(LaunchConfiguration('use_vio'))
     )
 
-    # finalize
+    imu_transformer_node = Node(
+        package='imu_transformer',
+        executable='imu_transformer_node',
+        name='imu_transformer_node',
+        parameters=[{'target_frame': 'base_link'}],
+        remappings=[('imu_in', '/sensors/imu/raw'), ('imu_out', '/imu')]
+    )
+
+    # Finalize LaunchDescription
     ld.add_action(joy_node)
     ld.add_action(joy_teleop_node)
     ld.add_action(ackermann_to_vesc_node)
@@ -142,10 +155,7 @@ def generate_launch_description():
     ld.add_action(vesc_driver_node)
     ld.add_action(actuation_manager_node)
     ld.add_action(urg_node)
-    ld.add_action(static_tf_node_bl)
-    # ld.add_action(static_tf_node_mo)
-    ld.add_action(static_tf_node_bi)
-    ld.add_action(static_tf_node_cbb)
-    ld.add_action(static_tf_node_cll)
+    ld.add_action(camera_node)
+    ld.add_action(imu_transformer_node)
 
     return ld
